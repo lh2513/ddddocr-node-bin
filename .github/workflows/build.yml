@@ -100,19 +100,14 @@ jobs:
           path: dist/captcha-bypass-*
           retention-days: 3
 
-      - name: Upload models
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v7
-        with:
-          name: models
-          path: dist/models/**
-          retention-days: 3
-
   release:
     needs: [prepare, build]
     if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
       - name: Download binaries
         uses: actions/download-artifact@v4
         with:
@@ -120,11 +115,8 @@ jobs:
           path: dist/
           merge-multiple: true
 
-      - name: Download models
-        uses: actions/download-artifact@v4
-        with:
-          name: models
-          path: dist/models/
+      - name: Copy models
+        run: cp -r models dist/models
 
       - name: List artifacts
         run: ls -lhR dist/
