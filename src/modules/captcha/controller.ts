@@ -12,6 +12,7 @@ import {
   detectResponseSchema,
 } from './model';
 import { solveOcrCaptcha, solveRotateCaptcha, solveSlideCaptcha, solveDetectionCaptcha } from './service';
+import { fail, success } from '@/utils/response';
 
 export const captchaController = new Elysia({ name: 'captcha/controller' })
   .use(authMW.middleware())
@@ -20,13 +21,10 @@ export const captchaController = new Elysia({ name: 'captcha/controller' })
     async ({ body }) => {
       try {
         const data = await solveDetectionCaptcha(body);
-        return { status: 0 as const, data, msg: 'success' };
+        return success(data);
       } catch (err) {
         console.error('[DETECT] 识别错误:', err);
-        return {
-          code: -1 as const,
-          msg: err instanceof Error ? err.message || '识别失败' : '识别失败',
-        };
+        return fail(err instanceof Error ? err.message || '识别失败' : '识别失败');
       }
     },
     {
@@ -39,13 +37,10 @@ export const captchaController = new Elysia({ name: 'captcha/controller' })
     async ({ body }) => {
       try {
         const data = await solveOcrCaptcha(body);
-        return { status: 0 as const, data, msg: 'success' };
+        return success(data);
       } catch (err) {
         console.error('[OCR] 识别错误:', err);
-        return {
-          code: -1 as const,
-          msg: err instanceof Error ? err.message || '识别失败' : '识别失败',
-        };
+        return fail(err instanceof Error ? err.message || '识别失败' : '识别失败');
       }
     },
     {
@@ -58,13 +53,10 @@ export const captchaController = new Elysia({ name: 'captcha/controller' })
     async ({ body }) => {
       try {
         const data = await solveRotateCaptcha(body);
-        return { status: 0 as const, data, msg: 'success' };
+        return success(data);
       } catch (err) {
         console.error('[ROTATE] 识别错误:', err);
-        return {
-          code: -1 as const,
-          msg: err instanceof Error ? err.message || '识别失败' : '识别失败',
-        };
+        return fail(err instanceof Error ? err.message || '识别失败' : '识别失败');
       }
     },
     {
@@ -77,13 +69,10 @@ export const captchaController = new Elysia({ name: 'captcha/controller' })
     async ({ body }) => {
       try {
         const data = await solveSlideCaptcha(body);
-        return { status: 0 as const, data, msg: 'success' };
+        return success(data);
       } catch (err) {
         console.error('[SLIDE] 识别错误:', err);
-        return {
-          code: -1 as const,
-          msg: err instanceof Error ? err.message || '识别失败' : '识别失败',
-        };
+        return fail(err instanceof Error ? err.message || '识别失败' : '识别失败');
       }
     },
     {
