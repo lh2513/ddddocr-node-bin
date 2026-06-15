@@ -98,7 +98,7 @@ export class OcrCaptchaService extends BaseOrtservice {
     // CTC 解码
     const ctcDecode = this.ctcGreedyDecode(output, vocab, { blankIndex: 0 });
     const text = typeof ctcDecode === 'string' ? ctcDecode : ctcDecode[0];
-    console.debug(`text ctc decode: ${text}`);
+    // console.debug(`text ctc decode: ${text}`);
 
     // 后置过滤（priority: range 参数 > 全局 charsetRanges 配置 > 无过滤）
     const allowedSet = (() => {
