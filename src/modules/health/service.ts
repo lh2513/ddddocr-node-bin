@@ -1,4 +1,4 @@
-import pkg from '@/../package.json' with { type: 'json' };
+import { APP_VERSION } from '@/utils/appInfo';
 
 export interface HealthInfo {
   version: string;
@@ -6,6 +6,6 @@ export interface HealthInfo {
 }
 
 export const getHealth = (): HealthInfo => ({
-  version: pkg.version,
+  version: APP_VERSION,
   timestamp: Date.now(),
 });

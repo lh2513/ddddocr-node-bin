@@ -1,7 +1,7 @@
 import os from 'os';
 
 import { config } from '@/config';
-import pkg from '../../package.json' with { type: 'json' };
+import { WEBSITE_URL, APP_VERSION } from './appInfo';
 
 export const consoleStartSuccess = () => {
   console.log(`${'='.repeat(23)} 服务启动成功 ${'='.repeat(23)}`);
@@ -17,8 +17,8 @@ export const consoleInfo = () => {
   console.log(`${'='.repeat(27)} 信息 ${'='.repeat(27)}`);
   console.log(`地址: http://127.0.0.1:${config.port}`);
   if (config.openapiEnable) console.log(`文档: http://127.0.0.1:${config.port}/docs`);
-  console.log(`项目: ${pkg.homepage}`);
-  console.log(`版本: ${pkg.version} | 系统: ${os.platform()} | 架构: ${os.arch()}`);
+  console.log(`项目: ${WEBSITE_URL}`);
+  console.log(`版本: ${APP_VERSION} | 系统: ${os.platform()} | 架构: ${os.arch()}`);
   console.log('='.repeat(60));
 };
 
