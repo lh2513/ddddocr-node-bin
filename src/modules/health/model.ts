@@ -1,5 +1,5 @@
 import { t } from 'elysia';
 
-import { apiResponse } from '../base';
+import { schema } from '@/utils/response';
 
-export const healthResponseSchema = apiResponse(t.Object({ version: t.String(), timestamp: t.Number() }));
+export const healthResponseSchema = schema(t.Object({ version: t.String(), timestamp: t.Number() }));

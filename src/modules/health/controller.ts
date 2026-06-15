@@ -8,7 +8,7 @@ export const healthController = new Elysia({ name: 'health/controller' }).get(
   () => {
     try {
       const data = getHealth();
-      return { status: 0 as const, data, msg: 'success' };
+      return { code: 0 as const, data, msg: 'success' };
     } catch (err) {
       console.error('[HEALTH] 健康检查错误:', err);
       return {

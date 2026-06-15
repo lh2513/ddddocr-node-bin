@@ -1,6 +1,6 @@
 import { t, type Static } from 'elysia';
 
-import { apiResponse } from '../base';
+import { schema } from '@/utils/response';
 import { ImageInput } from '@/utils/model';
 
 // ── request schemas ──
@@ -31,7 +31,7 @@ export const slideCaptchaSchema = t.Object({
 
 // ── response schemas ──
 
-export const detectResponseSchema = apiResponse(
+export const detectResponseSchema = schema(
   t.Array(
     t.Object({
       target: t.String(),
@@ -40,13 +40,13 @@ export const detectResponseSchema = apiResponse(
   ),
 );
 
-export const ocrResponseSchema = apiResponse(
+export const ocrResponseSchema = schema(
   t.Union([t.Object({ code: t.String() }), t.Object({ formula: t.String(), result: t.Number() })]),
 );
 
-export const rotateResponseSchema = apiResponse(t.Object({ cw: t.Number(), ccw: t.Number() }));
+export const rotateResponseSchema = schema(t.Object({ cw: t.Number(), ccw: t.Number() }));
 
-export const slideResponseSchema = apiResponse(t.Object({ x: t.Number(), y: t.Number() }));
+export const slideResponseSchema = schema(t.Object({ x: t.Number(), y: t.Number() }));
 
 // ── types ──
 
