@@ -15,6 +15,7 @@ import { healthController } from '@/modules/health';
 import { mcpController } from '@/modules/mcp';
 import { APP_DESC, APP_NAME, APP_VERSION } from '@/utils/appInfo';
 import consoleUtils from '@/utils/console';
+import { fail } from '@/utils/response';
 import { isPackaged } from '@/utils/systemInfo';
 import { isJsonStr } from '@/utils/validate';
 
@@ -70,11 +71,11 @@ const setupServer = async (): Promise<void> => {
     )
     .onError(({ code, error, status }) => {
       if (code === 'NOT_FOUND') {
-        return status(404, { code: -1, msg: '路由不存在' });
+        return status(404, fail('路由不存在'));
       }
 
       if (code === 'PARSE') {
-        return status(400, { code: -1, msg: '请求参数解析失败' });
+        return status(400, fail('请求参数解析失败'));
       }
 
       if (code === 'VALIDATION') {
@@ -85,11 +86,11 @@ const setupServer = async (): Promise<void> => {
               : error.message
             : '请求参数校验失败';
 
-        return status(400, { code: -1, msg });
+        return status(400, fail(msg));
       }
 
       if (typeof code === 'number' || ['UNKNOWN', 'INTERNAL_SERVER_ERROR'].includes('code')) console.error(error);
-      return status(500, { code: -1, msg: '服务器内部错误' });
+      return status(500, fail('服务器内部错误'));
     })
     .use(captchaController)
     .use(mcpController)
