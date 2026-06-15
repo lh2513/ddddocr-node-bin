@@ -6,6 +6,10 @@ dist
 .env.*
 !.env.example
 
+# Log
+logs
+*.log
+
 # Dependencies
 node_modules
 
