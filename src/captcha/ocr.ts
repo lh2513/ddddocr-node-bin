@@ -1,11 +1,13 @@
-import { resolve } from 'node:path';
 import fs from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import { Jimp } from 'jimp';
 import { Tensor } from 'onnxruntime-web';
 
-import { BaseOrtservice } from './base/ort';
 import { config } from '@/config';
 import { ROOT_PATH } from '@/utils/path';
+
+import { BaseOrtservice } from './base/ort';
 
 interface MathResult {
   formula: string;

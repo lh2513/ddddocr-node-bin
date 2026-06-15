@@ -1,6 +1,7 @@
-import os from 'os';
+import os from 'node:os';
 
 import { config } from '@/config';
+
 import { WEBSITE_URL, APP_VERSION } from './appInfo';
 
 export const consoleStartSuccess = () => {

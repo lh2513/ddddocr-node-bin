@@ -1,6 +1,7 @@
-import { JSON5 } from 'bun';
-import { resolve } from 'node:path';
 import fs from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+import { JSON5 } from 'bun';
 import { InferenceSession, Tensor, env as ortEnv } from 'onnxruntime-web';
 
 import { ROOT_PATH } from '@/utils/path';
