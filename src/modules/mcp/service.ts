@@ -4,29 +4,87 @@ import {
   solveSlideCaptcha,
   solveDetectionCaptcha,
 } from '@/modules/captcha/service';
+import { isJsonRpcV2 } from '@/utils/validate';
 
-interface JsonRpcRequest {
+// ── JSON-RPC 2.0 errors ──
+
+/**
+ * JSON-RPC 2.0 standard error codes (spec-defined).
+ * @see https://www.jsonrpc.org/specification#error_object
+ */
+export const JsonRpcError = {
+  PARSE_ERROR: { code: -32700 as const, message: 'Parse error' },
+  INVALID_REQUEST: { code: -32600 as const, message: 'Invalid Request' },
+  METHOD_NOT_FOUND: { code: -32601 as const, message: 'Method not found' },
+  INVALID_PARAMS: { code: -32602 as const, message: 'Invalid params' },
+  INTERNAL_ERROR: { code: -32603 as const, message: 'Internal error' },
+};
+
+/**
+ * MCP application-level errors.
+ * Server error range reserved: -32000 to -32099.
+ */
+const McpError = {
+  sessionNotFound: { code: -32001 as const, message: 'Session not found' },
+  toolNotFound: (name: string) => ({ code: -32601 as const, message: `Unknown tool: ${name}` }),
+  missingParams: (required: string) => ({ code: -32602 as const, message: `Missing required arguments: ${required}` }),
+  missingToolName: { code: -32602 as const, message: 'Missing tool name' },
+  toolFailed: (reason: string) => ({ code: -32603 as const, message: reason }),
+};
+
+// ── JSON-RPC 2.0 types ──
+
+export interface JsonRpcRequest {
   jsonrpc: '2.0';
   id?: string | number | null;
   method: string;
   params?: Record<string, unknown>;
 }
 
-interface JsonRpcResponse {
-  jsonrpc: '2.0';
-  id?: string | number | null;
-  result?: unknown;
-  error?: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
-}
+export type JsonRpcResponse =
+  | {
+      jsonrpc: '2.0';
+      id: string | number | null;
+      result: unknown;
+    }
+  | {
+      jsonrpc: '2.0';
+      id: string | number | null;
+      error: {
+        code: number;
+        message: string;
+        data?: unknown;
+      };
+    };
+
+// ── JSON-RPC response builders ──
+
+export const rpc = {
+  success(id: string | number | null | undefined, result: unknown): JsonRpcResponse {
+    return { jsonrpc: '2.0', id: id ?? null, result };
+  },
+
+  error(
+    id: string | number | null | undefined,
+    error: { code: number; message: string; data?: unknown },
+  ): JsonRpcResponse {
+    return { jsonrpc: '2.0', id: id ?? null, error };
+  },
+
+  /** Pre-built parse error (no request body could be parsed). */
+  parseError(): JsonRpcResponse {
+    return { jsonrpc: '2.0', id: null, error: JsonRpcError.PARSE_ERROR };
+  },
+};
+
+// ── server info ──
 
 const SERVER_INFO = {
   name: 'captcha-bypass',
   version: '1.0.6',
 };
+
+// ── tool definitions ──
 
 const TOOLS = [
   {
@@ -68,7 +126,8 @@ const TOOLS = [
         },
         bg: {
           type: 'string',
-          description: 'The image to rotate as base64 string or URL (for single), or the background/reference image (for nox/tiktok)',
+          description:
+            'The image to rotate as base64 string or URL (for single), or the background/reference image (for nox/tiktok)',
         },
         thumb: {
           type: 'string',
@@ -129,25 +188,13 @@ const TOOLS = [
   },
 ];
 
-function isJsonRpcRequest(msg: unknown): msg is JsonRpcRequest {
-  return (
-    typeof msg === 'object' &&
-    msg !== null &&
-    'jsonrpc' in msg &&
-    (msg as JsonRpcRequest).jsonrpc === '2.0' &&
-    'method' in msg
-  );
-}
+// ── tool call handler ──
 
 async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
   const { name, arguments: args } = (req.params as { name?: string; arguments?: Record<string, string> }) || {};
 
   if (!name) {
-    return {
-      jsonrpc: '2.0',
-      id: req.id,
-      error: { code: -32602, message: 'Missing tool name' },
-    };
+    return rpc.error(req.id, McpError.missingToolName);
   }
 
   try {
@@ -156,14 +203,7 @@ async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
     switch (name) {
       case 'ocr': {
         if (!args?.type || !args?.image) {
-          return {
-            jsonrpc: '2.0',
-            id: req.id,
-            error: {
-              code: -32602,
-              message: 'Missing required arguments: type, image',
-            },
-          };
+          return rpc.error(req.id, McpError.missingParams('type, image'));
         }
         result = await solveOcrCaptcha({
           type: args.type as 'text' | 'math',
@@ -175,14 +215,7 @@ async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
 
       case 'rotate': {
         if (!args?.type || !args?.bg) {
-          return {
-            jsonrpc: '2.0',
-            id: req.id,
-            error: {
-              code: -32602,
-              message: 'Missing required arguments: type, bg',
-            },
-          };
+          return rpc.error(req.id, McpError.missingParams('type, bg'));
         }
         result = await solveRotateCaptcha({
           type: args.type as 'single' | 'nox' | 'tiktok',
@@ -194,14 +227,7 @@ async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
 
       case 'slide': {
         if (!args?.type || !args?.thumb || !args?.bg) {
-          return {
-            jsonrpc: '2.0',
-            id: req.id,
-            error: {
-              code: -32602,
-              message: 'Missing required arguments: type, thumb, bg',
-            },
-          };
+          return rpc.error(req.id, McpError.missingParams('type, thumb, bg'));
         }
         result = await solveSlideCaptcha({
           type: args.type as 'match' | 'compare',
@@ -213,14 +239,7 @@ async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
 
       case 'detect': {
         if (!args?.type || !args?.bg) {
-          return {
-            jsonrpc: '2.0',
-            id: req.id,
-            error: {
-              code: -32602,
-              message: 'Missing required arguments: type, bg',
-            },
-          };
+          return rpc.error(req.id, McpError.missingParams('type, bg'));
         }
         result = await solveDetectionCaptcha({
           type: args.type as 'detect' | 'match',
@@ -231,90 +250,60 @@ async function handleToolCall(req: JsonRpcRequest): Promise<JsonRpcResponse> {
       }
 
       default:
-        return {
-          jsonrpc: '2.0',
-          id: req.id,
-          error: { code: -32601, message: `Unknown tool: ${name}` },
-        };
+        return rpc.error(req.id, McpError.toolNotFound(name));
     }
 
-    return {
-      jsonrpc: '2.0',
-      id: req.id,
-      result: {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: false,
-      },
-    };
+    return rpc.success(req.id, {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      isError: false,
+    });
   } catch (err) {
-    return {
-      jsonrpc: '2.0',
-      id: req.id,
-      result: {
-        content: [
-          {
-            type: 'text',
-            text: err instanceof Error ? err.message : 'Tool execution failed',
-          },
-        ],
-        isError: true,
-      },
-    };
+    return rpc.success(req.id, {
+      content: [
+        {
+          type: 'text',
+          text: err instanceof Error ? err.message : 'Tool execution failed',
+        },
+      ],
+      isError: true,
+    });
   }
 }
 
-export async function processMessage(message: unknown): Promise<JsonRpcResponse | null> {
-  if (!isJsonRpcRequest(message)) {
-    return {
-      jsonrpc: '2.0',
-      id: null,
-      error: { code: -32600, message: 'Invalid Request' },
-    };
+// ── MCP message dispatcher ──
+
+export async function handleMcpMessage(message: unknown): Promise<JsonRpcResponse> {
+  if (!isJsonRpcV2(message)) {
+    return rpc.error(null, JsonRpcError.INVALID_REQUEST);
   }
 
   const isNotification = message.id === undefined || message.id === null;
 
   switch (message.method) {
     case 'initialize':
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: {
-          protocolVersion: '2024-11-05',
-          capabilities: { tools: {} },
-          serverInfo: SERVER_INFO,
-        },
-      };
+      return rpc.success(message.id, {
+        protocolVersion: '2024-11-05',
+        capabilities: { tools: {} },
+        serverInfo: SERVER_INFO,
+      });
 
     case 'notifications/initialized':
-      return null;
+      return rpc.success(null, {});
 
     case 'tools/list':
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: { tools: TOOLS },
-      };
+      return rpc.success(message.id, { tools: TOOLS });
 
     case 'tools/call':
       return handleToolCall(message);
 
     case 'ping':
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: {},
-      };
+      return rpc.success(message.id, {});
 
     default:
-      if (isNotification) return null;
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        error: {
-          code: -32601,
-          message: `Method not found: ${message.method}`,
-        },
-      };
+      if (isNotification) return rpc.success(null, {});
+      return rpc.error(message.id, {
+        ...JsonRpcError.METHOD_NOT_FOUND,
+        message: `Method not found: ${message.method}`,
+      });
   }
 }

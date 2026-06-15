@@ -71,8 +71,7 @@ docker run -d -p 7788:7788 ghcr.io/hiram-wong/captcha-bypass:latest
 | 旋转验证码 | `/captcha/rotate` | POST | type(必传): single/ nox / tiktok<br>bg(必传)<br>thumb(nox/tiktok 必传)           |
 | 滑动验证码 | `/captcha/slide`  | POST | type(必传): match / comparison<br>thumb(必传)<br>bg(必传)                        |
 | 健康检查   | `/health`         | GET  |                                                                                  |
-| MCP 消息   | `/mcp`            | GET  | SSE 长连接，返回 `endpoint` 事件（含 session 消息地址）                          |
-| MCP 指令   | `/mcp/messages`   | POST | `?sessionId=`：SSE 返回的 session ID<br>body：JSON-RPC 2.0 消息（详见工具列表）  |
+| MCP 协议   | `/mcp`            | POST | Streamable HTTP 传输，body：JSON-RPC 2.0 消息（详见工具列表）                   |
 
 ### 调用说明
 
@@ -82,20 +81,12 @@ docker run -d -p 7788:7788 ghcr.io/hiram-wong/captcha-bypass:latest
 <details>
 <summary>展开查看MCP调用</summary>
 
-MCP 端点遵循 [Model Context Protocol](https://modelcontextprotocol.io) 协议，通过 SSE 传输 JSON-RPC 2.0 消息。连接后使用 `tools/list` 获取工具列表，`tools/call` 调用工具。
+MCP 端点遵循 [Model Context Protocol](https://modelcontextprotocol.io) 协议，使用 Streamable HTTP 传输 JSON-RPC 2.0 消息。所有请求发送到 `POST /mcp`，直接返回 JSON-RPC 响应。
 
-#### 1. 建立 SSE 连接（保持连接以接收响应）
-
-```bash
-curl -N -X GET 'http://127.0.0.1:7788/mcp'
-# event: endpoint
-# data: http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx
-```
-
-#### 2. 初始化
+#### 1. 初始化
 
 ```bash
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
@@ -109,10 +100,10 @@ curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
   }'
 ```
 
-#### 3. 获取工具列表
+#### 2. 获取工具列表
 
 ```bash
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
@@ -121,10 +112,10 @@ curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
   }'
 ```
 
-#### 4. 调用 OCR 识别
+#### 3. 调用 OCR 识别
 
 ```bash
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",

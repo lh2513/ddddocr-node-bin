@@ -181,28 +181,23 @@ curl -X POST 'http://127.0.0.1:7788/captcha/detect' \
   -d '{"type":"match","bg":"https://example.com/bg.png","thumb":"https://example.com/thumb.png"}'
 ```
 
-### 5. MCP (Model Context Protocol) — `GET /mcp` + `POST /mcp/messages`
+### 5. MCP (Model Context Protocol) — `POST /mcp`
 
-MCP SSE endpoint for AI agent integration. Supports 4 tools: `ocr`, `rotate`, `slide`, `detect`.
+MCP Streamable HTTP endpoint for AI agent integration. Supports 4 tools: `ocr`, `rotate`, `slide`, `detect`.
 
-**Connection flow:**
+**Usage (single endpoint, no SSE, no sessions):**
 
 ```bash
-# 1. Establish SSE connection (keep open to receive responses)
-curl -N -X GET 'http://127.0.0.1:7788/mcp'
-# event: endpoint
-# data: http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx
-
-# 2. Initialize
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
+# 1. Initialize
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"client","version":"1.0"}}}'
 
-# 3. Call a tool
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=xxx-xxx' \
+# 2. Call a tool — response returned directly in HTTP body
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"ocr","arguments":{"type":"text","image":"https://example.com/captcha.png","range":"0123456789"}}}'
-# Response arrives via SSE: event: message → data: { "result": {...} }
+# → {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"..."}]}}
 ```
 
 ### 6. Health Check — `GET /health`

@@ -306,18 +306,13 @@ curl -X POST 'http://127.0.0.1:7788/captcha/detect' \
 
 ---
 
-### `GET /mcp` + `POST /mcp/messages`
+### `POST /mcp`
 
-MCP (Model Context Protocol) SSE endpoint for AI agent integration. The server implements the MCP SSE transport with JSON-RPC 2.0 messages.
+MCP (Model Context Protocol) Streamable HTTP endpoint for AI agent integration. Single endpoint, no SSE, no sessions — direct request-response with JSON-RPC 2.0.
 
 **Authentication**: Not required (MCP has its own protocol layer).
 
-**Connection flow:**
-
-1. Client opens SSE connection via `GET /mcp`
-2. Server responds with `event: endpoint` containing the message URL
-3. Client sends JSON-RPC 2.0 requests via `POST /mcp/messages?sessionId=xxx`
-4. Server sends JSON-RPC responses via the SSE stream as `event: message`
+**How it works:** Send a JSON-RPC 2.0 request via `POST /mcp`, receive the response directly in the HTTP body.
 
 **Available tools:**
 
@@ -331,24 +326,18 @@ MCP (Model Context Protocol) SSE endpoint for AI agent integration. The server i
 **Example flow:**
 
 ```bash
-# 1. Connect SSE (keep terminal open)
-curl -N -X GET 'http://127.0.0.1:7788/mcp'
-# → event: endpoint
-# → data: http://127.0.0.1:7788/mcp/messages?sessionId=<uuid>
-
-# 2. Initialize (in another terminal, substitute sessionId)
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=<uuid>' \
+# 1. Initialize
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"my-client","version":"1.0"}}}'
-# → SSE terminal shows: event: message → data: {"jsonrpc":"2.0","id":1,"result":{...}}
 
-# 3. List tools
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=<uuid>' \
+# 2. List tools
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 
-# 4. Call OCR tool
-curl -X POST 'http://127.0.0.1:7788/mcp/messages?sessionId=<uuid>' \
+# 3. Call OCR tool
+curl -X POST 'http://127.0.0.1:7788/mcp' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"ocr","arguments":{"type":"text","image":"https://example.com/captcha.png","range":"0123456789"}}}'
 ```

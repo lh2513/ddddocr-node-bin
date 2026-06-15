@@ -1,5 +1,5 @@
-import crypto from 'node:crypto';
 import { Elysia } from 'elysia';
+import crypto from 'node:crypto';
 
 import { config } from '@/config';
 
