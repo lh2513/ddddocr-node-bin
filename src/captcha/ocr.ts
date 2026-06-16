@@ -104,21 +104,26 @@ export class OcrCaptchaService extends BaseOrtservice {
 
     const vocab = this.charset;
 
-    // CTC 解码
-    const ctcDecode = this.ctcGreedyDecode(output, vocab, { blankIndex: 0 });
-    const text = typeof ctcDecode === 'string' ? ctcDecode : ctcDecode[0];
-    console.debug(`text ctc decode: ${text}`);
-
-    // 后置过滤（priority: range 参数 > 全局 charsetRanges 配置 > 无过滤）
+    // 构建允许字符的索引集合（用于解码时过滤，参考 ddddocr PR #234）
     const allowedSet = (() => {
       if (ranges && ranges.size > 0) return ranges;
       if (this.charsetRanges.size > 0) return this.charsetRanges;
       return null;
     })();
 
-    const result = allowedSet ? [...text].filter((ch) => allowedSet.has(ch)).join('') : text;
+    const allowedIndices = allowedSet
+      ? new Set(vocab.reduce<number[]>((acc, char, idx) => {
+          if (allowedSet.has(char)) acc.push(idx);
+          return acc;
+        }, []))
+      : undefined;
 
-    return { code: result };
+    // CTC 解码（限制在 allowedIndices 范围内 argmax）
+    const ctcDecode = this.ctcGreedyDecode(output, vocab, { blankIndex: 0, allowedIndices });
+    const text = typeof ctcDecode === 'string' ? ctcDecode : ctcDecode[0];
+    console.debug(`text ctc decode: ${text}`);
+
+    return { code: text };
   }
 
   public async math(bgBase64: string): Promise<MathResult> {

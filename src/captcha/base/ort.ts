@@ -148,6 +148,7 @@ export class BaseOrtservice {
       sequenceLength?: number[];
       blankIndex?: number;
       mergeRepeated?: boolean;
+      allowedIndices?: Set<number>;
     },
   ): string | string[] {
     const { dims, data } = outputTensor;
@@ -158,7 +159,7 @@ export class BaseOrtservice {
     const maxTime = isBatch ? dims[0] : dims[0];
     const numClasses = isBatch ? dims[2] : dims[1];
 
-    const { sequenceLength = [], blankIndex, mergeRepeated = true } = options || {};
+    const { sequenceLength = [], blankIndex, mergeRepeated = true, allowedIndices } = options || {};
 
     const blankIdx = blankIndex ?? numClasses - 1;
     const results: string[] = [];
@@ -183,11 +184,27 @@ export class BaseOrtservice {
         let maxId = 0;
         let maxVal = -Infinity;
 
-        for (let c = 0; c < numClasses; c++) {
-          const val = (data as Float32Array)[frameOffset + c];
-          if (val > maxVal) {
-            maxVal = val;
-            maxId = c;
+        if (allowedIndices && allowedIndices.size > 0) {
+          for (const c of allowedIndices) {
+            const val = (data as Float32Array)[frameOffset + c];
+            if (val > maxVal) {
+              maxVal = val;
+              maxId = c;
+            }
+          }
+
+          const blankVal = (data as Float32Array)[frameOffset + blankIdx];
+          if (blankVal > maxVal) {
+            maxVal = blankVal;
+            maxId = blankIdx;
+          }
+        } else {
+          for (let c = 0; c < numClasses; c++) {
+            const val = (data as Float32Array)[frameOffset + c];
+            if (val > maxVal) {
+              maxVal = val;
+              maxId = c;
+            }
           }
         }
 
