@@ -1,6 +1,7 @@
 ## 1.0.7
 
-- 优化: range过滤 ctc后置 -> ctc解码中
+- 优化: ort range过滤 ctc后置 -> ctc解码中
+- 优化: math 优化匹配, 支持range参数
 
 ## 1.0.6
 

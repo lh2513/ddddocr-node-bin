@@ -112,10 +112,12 @@ export class OcrCaptchaService extends BaseOrtservice {
     })();
 
     const allowedIndices = allowedSet
-      ? new Set(vocab.reduce<number[]>((acc, char, idx) => {
-          if (allowedSet.has(char)) acc.push(idx);
-          return acc;
-        }, []))
+      ? new Set(
+          vocab.reduce<number[]>((acc, char, idx) => {
+            if (allowedSet.has(char)) acc.push(idx);
+            return acc;
+          }, []),
+        )
       : undefined;
 
     // CTC 解码（限制在 allowedIndices 范围内 argmax）
@@ -126,54 +128,25 @@ export class OcrCaptchaService extends BaseOrtservice {
     return { code: text };
   }
 
-  public async math(bgBase64: string): Promise<MathResult> {
-    // prettier-ignore
-    const ranges = new Set([
+  public async math(bgBase64: string, ranges?: Set<string>): Promise<MathResult> {
+    const defaultRanges = new Set([
       ...'0123456789',
-      ...'０１２３４５６７８９', // U+FF10 - U+FF19
       ...'①②③④⑤⑥⑦⑧⑨',
       ...'零一二三四五六七八九',
       ...'〇壹贰叁肆伍陆柒捌玖',
-
       ...'加减乘除等',
-      ...'+-*/=?',
-      ...'＋－–×ⅩⅹxX÷＝？',
-
-      ...'oOｏＯΟОDＤ', // 0
-      ...'lIｌＩіⅰⅠ', // 1
-      ...'zZｚＺ', // 2
-      ...'sSｓＳ', // 5
-      ...'bBｂＢ', // 8
-      ...'gqＧＱ', // 9
+      ...'+-*x÷/=?',
     ]);
+    const limit = ranges && ranges.size > 0 ? ranges : defaultRanges;
 
-    const mapChars = (chars: string, value: string): Record<string, string> => {
-      return Object.fromEntries([...chars].map((char) => [char, value]));
-    };
-
-    const replaceMap: Record<string, string> = {
-      // 数字
-      ...mapChars('oOｏＯΟОDＤ', '0'),
-      ...mapChars('lIｌＩіⅰⅠ', '1'),
-      ...mapChars('zZｚＺ', '2'),
-      ...mapChars('sSｓＳ', '5'),
-      ...mapChars('bBｂＢ', '8'),
-      ...mapChars('gqＧＱ', '9'),
-
-      // 运算符
-      ...mapChars('加＋', '+'),
-      ...mapChars('减－–', '-'),
-      ...mapChars('乘×ⅩⅹxX', '*'),
-      ...mapChars('除÷', '/'),
-    };
-
-    const { code } = await this.text(bgBase64, ranges);
+    const { code } = await this.text(bgBase64, limit);
 
     // prettier-ignore
     const formula = code
       .normalize('NFKC') // 规范化字符格式
-      .replace(/7$/, '') // 移除末尾 7（识别错误率高）
-      .split('').map(char => replaceMap[char] ?? char).join('') // 修正
+
+      .replace(/27$/, '') // =? -> 27（识别错误率高）
+      .replace(/7$/, '') // ? -> 7（识别错误率高）
 
       .replace(/[零〇]/g, '0')  
       .replace(/[一壹①]/g, '1')
@@ -186,7 +159,12 @@ export class OcrCaptchaService extends BaseOrtservice {
       .replace(/[八捌⑧]/g, '8')
       .replace(/[九玖⑨]/g, '9')
 
-      .replace(/[等=?？]/g, '') // 删除不执行字符
+      .replace(/[加]/g, '+')
+      .replace(/[减]/g, '-')
+      .replace(/[乘x]/g, '*')
+      .replace(/[除÷]/g, '/')
+
+      .replace(/[等=?]/g, '') // 删除不执行字符
       .replace(/[^0-9+\-*/]/g, ''); // 允许数学表达式
 
     if (!formula) throw new Error('Formula expression error');

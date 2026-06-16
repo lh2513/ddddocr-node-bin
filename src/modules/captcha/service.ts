@@ -42,7 +42,7 @@ export const solveOcrCaptcha = async (input: OcrCaptchaInput): Promise<OcrResult
   let result;
   switch (type) {
     case 'math': {
-      result = await ocrCaptchaService.math(bgImgB64);
+      result = await ocrCaptchaService.math(bgImgB64, limit);
       console.debug(`[OCR][${type}] 识别结果: ${result.formula} = ${result.result}`);
       break;
     }
